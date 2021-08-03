@@ -10,7 +10,7 @@ spec:
   source: community-operators
   sourceNamespace: openshift-marketplace
   #startingCSV: prometheusoperator.0.37.0
-  startingCSV: prometheusoperator.0.47.0
+  currentCSV: prometheusoperator.0.47.0
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
