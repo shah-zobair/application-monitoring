@@ -1,15 +1,72 @@
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: prometheus-operator
+    app.kubernetes.io/version: v0.39.0
+  name: prometheus-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/name: prometheus-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/name: prometheus-operator
+        app.kubernetes.io/version: v0.39.0
+    spec:
+      containers:
+      - args:
+        - --kubelet-service=kube-system/kubelet
+        - --logtostderr=true
+        #- --config-reloader-image=jimmidyson/configmap-reload:v0.3.0
+        - --config-reloader-image=nexus-repo.caas.stratus.int.bell.ca/paas/openshift-images/prometheus-configmap-reload:v0.3.0
+        - --prometheus-config-reloader=quay.io/coreos/prometheus-config-reloader:v0.39.0
+        # manage the following listed namespaces only , separated
+        - --namespaces={{ join "," .Values.workload_namespace }}
+        image: quay.io/coreos/prometheus-operator:v0.39.0
+        name: prometheus-operator
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          limits:
+            cpu: 200m
+            memory: 250Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      securityContext: {}
+      serviceAccountName: prometheus-operator
+---
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
   name: prometheus
   labels:
     prometheus: k8s
-  namespace: {{ .Values.monitoring_namespace }}
 spec:
   replicas: 2
   serviceAccountName: monitoring
   securityContext: {}
+  {{- if eq .Values.prometheus_storage_enabled "true" }}
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: {{ .Values.storage_class_name }}
+        resources:
+          requests:
+            storage: {{ .Values.prometheus_storage_size }}
+  {{- end }}
   serviceMonitorNamespaceSelector: {}
   serviceMonitorSelector:
     matchExpressions:
@@ -22,14 +79,20 @@ spec:
   alerting:
     alertmanagers:
       - namespace: {{ .Values.monitoring_namespace }}
-        name: alertmanager-main
+        name: svc-alert-manager
         port: web
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 2500Mi
+    requests:
+      cpu: 200m
+      memory: 1000Mi
 ---
 apiVersion: integreatly.org/v1alpha1
 kind: GrafanaDataSource
 metadata:
   name: grafana-datasource
-  namespace: {{ .Values.monitoring_namespace }}
 spec:
   datasources:
     - access: proxy
@@ -47,7 +110,6 @@ apiVersion: integreatly.org/v1alpha1
 kind: Grafana
 metadata:
   name: grafana
-  namespace: {{ .Values.monitoring_namespace }}
 spec:
   client:
     preferService: true
@@ -69,6 +131,13 @@ spec:
   dashboardLabelSelector:
     - matchExpressions:
         - { key: app, operator: In, values: [ grafana ] }
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 250Mi
+    requests:
+      cpu: 200m
+      memory: 250Mi
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: Alertmanager
@@ -76,6 +145,22 @@ metadata:
   name: monitoring
 spec:
   replicas: 3
+  {{- if eq .Values.alertmanager_storage_enabled "true" }}
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: {{ .Values.storage_class_name }}
+        resources:
+          requests:
+            storage: {{ .Values.alertmanager_storage_size }}
+  {{- end }}
+  resources:
+    limits:
+      cpu: 200m
+      memory: 150Mi
+    requests:
+      cpu: 200m
+      memory: 100Mi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -85,7 +170,6 @@ metadata:
     app.kubernetes.io/version: v1.9.7
     monitoring: "true"
   name: kube-state-metrics
-  namespace: {{ .Values.monitoring_namespace }}
 spec:
   replicas: 1
   selector:
@@ -107,14 +191,27 @@ spec:
         - --namespace={{ join "," .Values.workload_namespace }}
         image: quay.io/coreos/kube-state-metrics:v1.9.7
         name: kube-state-metrics
+        resources:
+          limits:
+            cpu: 500m
+            memory: 200Mi
+          requests:
+            cpu: 200m
+            memory: 200Mi
       - args:
         - --logtostderr
         - --secure-listen-address=:8443
         - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
         - --upstream=http://127.0.0.1:8081/
-        #image: quay.io/brancz/kube-rbac-proxy:v0.8.0
-        image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.7.0
+        image: quay.io/brancz/kube-rbac-proxy:v0.8.0
         name: kube-rbac-proxy-main
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
         ports:
         - containerPort: 8443
           name: https-main
@@ -127,9 +224,15 @@ spec:
         - --secure-listen-address=:9443
         - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
         - --upstream=http://127.0.0.1:8082/
-        #image: quay.io/brancz/kube-rbac-proxy:v0.8.0
-        image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.7.0
+        image: quay.io/brancz/kube-rbac-proxy:v0.8.0
         name: kube-rbac-proxy-self
+        resources:
+          limits:
+            cpu: 200m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
         ports:
         - containerPort: 9443
           name: https-self
@@ -148,7 +251,6 @@ metadata:
     app: prometheus-example-app
     monitoring: "true"
   name: prometheus-example-app
-  namespace: {{ .Values.monitoring_namespace }}
 spec:
   replicas: 1
   selector:
@@ -164,23 +266,29 @@ spec:
       - image: quay.io/brancz/prometheus-example-app:v0.2.0
         imagePullPolicy: IfNotPresent
         name: prometheus-example-app
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
   labels:
-    app: sample-monitoring-app
+    app: bell-monitoring-app
     monitoring: "true"
-  name: sample-monitoring-app
-  namespace: {{ .Values.monitoring_namespace }}
+  name: bell-monitoring-app
 spec:
   progressDeadlineSeconds: 600
   revisionHistoryLimit: 10
   replicas: 1
   selector:
     matchLabels:
-      app: sample-monitoring-app
+      app: bell-monitoring-app
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -191,7 +299,7 @@ spec:
       annotations:
       creationTimestamp: null
       labels:
-        app: sample-monitoring-app
+        app: bell-monitoring-app
         monitoring: "true"
     spec:
       containers:
@@ -201,10 +309,16 @@ spec:
           /run.sh
         command:
         - /bin/bash
-        image: quay.io/szobair/sample-monitoring-app
+        image: nexus-repo.caas.stratus.int.bell.ca/paas/openshift-images/bell-monitoring-app:1.1
         imagePullPolicy: IfNotPresent
-        name: sample-monitoring-app
-        resources: {}
+        name: bell-monitoring-app
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
         securityContext: {}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
