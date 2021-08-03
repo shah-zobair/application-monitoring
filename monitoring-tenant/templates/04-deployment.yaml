@@ -25,7 +25,7 @@ spec:
         - --kubelet-service=kube-system/kubelet
         - --logtostderr=true
         #- --config-reloader-image=jimmidyson/configmap-reload:v0.3.0
-        - --config-reloader-image=nexus-repo.caas.stratus.int.bell.ca/paas/openshift-images/prometheus-configmap-reload:v0.3.0
+        - --config-reloader-image=quay.io/szobair/configmap-reload:v0.3.0
         - --prometheus-config-reloader=quay.io/coreos/prometheus-config-reloader:v0.39.0
         # manage the following listed namespaces only , separated
         - --namespaces={{ join "," .Values.workload_namespace }}
@@ -203,7 +203,8 @@ spec:
         - --secure-listen-address=:8443
         - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
         - --upstream=http://127.0.0.1:8081/
-        image: quay.io/brancz/kube-rbac-proxy:v0.8.0
+        #image: quay.io/brancz/kube-rbac-proxy:v0.8.0
+        image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.7.0
         name: kube-rbac-proxy-main
         resources:
           limits:
@@ -224,7 +225,8 @@ spec:
         - --secure-listen-address=:9443
         - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
         - --upstream=http://127.0.0.1:8082/
-        image: quay.io/brancz/kube-rbac-proxy:v0.8.0
+        #image: quay.io/brancz/kube-rbac-proxy:v0.8.0
+        image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.7.0
         name: kube-rbac-proxy-self
         resources:
           limits:
@@ -279,16 +281,16 @@ kind: Deployment
 metadata:
   annotations:
   labels:
-    app: bell-monitoring-app
+    app: example-monitoring-app
     monitoring: "true"
-  name: bell-monitoring-app
+  name: example-monitoring-app
 spec:
   progressDeadlineSeconds: 600
   revisionHistoryLimit: 10
   replicas: 1
   selector:
     matchLabels:
-      app: bell-monitoring-app
+      app: example-monitoring-app
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -299,7 +301,7 @@ spec:
       annotations:
       creationTimestamp: null
       labels:
-        app: bell-monitoring-app
+        app: example-monitoring-app
         monitoring: "true"
     spec:
       containers:
@@ -309,9 +311,9 @@ spec:
           /run.sh
         command:
         - /bin/bash
-        image: nexus-repo.caas.stratus.int.bell.ca/paas/openshift-images/bell-monitoring-app:1.1
+        image: quay.io/szobair/sample-monitoring-app
         imagePullPolicy: IfNotPresent
-        name: bell-monitoring-app
+        name: example-monitoring-app
         resources:
           limits:
             cpu: 100m

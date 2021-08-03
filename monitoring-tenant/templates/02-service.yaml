@@ -38,11 +38,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: bell-monitoring-app
+  name: example-monitoring-app
   namespace: {{ .Values.monitoring_namespace }}
   labels:
-    app: bell-monitoring-app
-    service: bell-monitoring-app
+    app: example-monitoring-app
+    service: example-monitoring-app
     monitoring: "true"
 spec:
   ports:
@@ -50,4 +50,4 @@ spec:
     name: web
     targetPort: 8080
   selector:
-    app: bell-monitoring-app
+    app: example-monitoring-app
