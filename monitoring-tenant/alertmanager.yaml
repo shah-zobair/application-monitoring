@@ -1,0 +1,43 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: https://hooks.slack.com/services/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
+  pagerduty_url: https://example.pagerduty.com
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_interval: 5m
+  group_wait: 1m
+  repeat_interval: 30m
+  receiver: slack
+  routes:
+  - match:
+      alertname: Watchdog
+    receiver: 'null'
+  - match:
+      severity: critical
+    repeat_interval: 5m
+    receiver: pagerduty-caas
+    continue: true
+  - match:
+      service: example-mon-app
+    routes:
+    - match:
+        severity: critical
+      receiver: slack
+    continue: true
+  - match:
+      severity: critical
+    repeat_interval: 5m
+    receiver: slack
+receivers:
+  - name: 'null'
+  - name: slack
+    slack_configs:
+    - channel: '#nc_caas_alert'
+      http_config:
+        proxy_url: http://proxy.example.com:8888
+  - name: pagerduty-caas
+    pagerduty_configs:
+    - routing_key: af76dc878e1e47518a59b8f883854b2b
+      url: https://example.pagerduty.com
+      http_config:
+        proxy_url: http://proxy.example.com:8888

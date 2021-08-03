@@ -1,0 +1,9 @@
+---
+
+# monitoring_namespace: Where the monitoring stack will be installed
+monitoring_namespace: "monitoring-app"
+
+# workload_namespaces: Which Namespaces will be monitored
+workload_namespace:
+  - example-app-1
+  - example-app-2
