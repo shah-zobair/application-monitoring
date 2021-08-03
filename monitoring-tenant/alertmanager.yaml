@@ -1,6 +1,6 @@
 global:
   resolve_timeout: 5m
-  slack_api_url: https://hooks.slack.com/services/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
+  slack_api_url: https://hooks.slack.com/services/XXXXXX
   pagerduty_url: https://example.pagerduty.com
 route:
   group_by: ['alertname', 'cluster', 'service']
@@ -37,7 +37,7 @@ receivers:
         proxy_url: http://proxy.example.com:8888
   - name: pagerduty-caas
     pagerduty_configs:
-    - routing_key: af76dc878e1e47518a59b8f883854b2b
+    - routing_key: XXXXXXX
       url: https://example.pagerduty.com
       http_config:
         proxy_url: http://proxy.example.com:8888
