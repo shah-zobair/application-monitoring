@@ -1,21 +1,8 @@
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: prometheus
-  namespace: {{ .Values.monitoring_namespace }}
-spec:
-  channel: beta
-  installPlanApproval: Automatic
-  name: prometheus
-  source: community-operators
-  sourceNamespace: openshift-marketplace
-  startingCSV: prometheusoperator.0.37.0
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: grafana
-  namespace: {{ .Values.monitoring_namespace }}
+  name: grafana-operator
 spec:
   channel: alpha
   installPlanApproval: Automatic

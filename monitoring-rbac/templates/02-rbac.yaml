@@ -27,7 +27,166 @@ rules:
 - apiGroups: ["monitoring.coreos.com"]
   resources:
   - thanosrulers
-  verbs: ["get", "list", "watch"]
+  - alertmanagers
+  - prometheuses
+  - servicemonitors
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - update
+  - patch
+- apiGroups: ["integreatly.org"]
+  resources:
+  - grafanas
+  - grafanadashboards
+  - grafanadatasources
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - update
+  - patch
+---
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: ClusterRole
+#metadata:
+#  labels:
+#    app.kubernetes.io/name: kube-state-metrics
+#    app.kubernetes.io/version: v1.9.7
+#  name: kube-state-metrics
+#rules:
+#- apiGroups:
+#  - ""
+#  resources:
+#  - configmaps
+#  - secrets
+#  - pods
+#  - services
+#  - resourcequotas
+#  - replicationcontrollers
+#  - limitranges
+#  - persistentvolumeclaims
+#  - persistentvolumes
+#  - namespaces
+#  - endpoints
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - extensions
+#  resources:
+#  - daemonsets
+#  - deployments
+#  - replicasets
+#  - ingresses
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - apps
+#  resources:
+#  - statefulsets
+#  - daemonsets
+#  - deployments
+#  - replicasets
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - batch
+#  resources:
+#  - cronjobs
+#  - jobs
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - autoscaling
+#  resources:
+#  - horizontalpodautoscalers
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - authentication.k8s.io
+#  resources:
+#  - tokenreviews
+#  verbs:
+#  - create
+#- apiGroups:
+#  - authorization.k8s.io
+#  resources:
+#  - subjectaccessreviews
+#  verbs:
+#  - create
+#- apiGroups:
+#  - policy
+#  resources:
+#  - poddisruptionbudgets
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - certificates.k8s.io
+#  resources:
+#  - certificatesigningrequests
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - storage.k8s.io
+#  resources:
+#  - storageclasses
+#  - volumeattachments
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - admissionregistration.k8s.io
+#  resources:
+#  - mutatingwebhookconfigurations
+#  - validatingwebhookconfigurations
+#  verbs:
+#  - list
+#  - watch
+#- apiGroups:
+#  - networking.k8s.io
+#  resources:
+#  - networkpolicies
+#  verbs:
+#  - list
+#  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: workload-kube-state-metrics-clusterrole-{{ .Values.monitoring_namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-state-metrics
+subjects:
+  - kind: ServiceAccount
+    name: kube-state-metrics
+    namespace: {{ .Values.monitoring_namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: workload-monitoring-users
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: workload-monitoring-prometheus-operator
+subjects:
+- kind: Group
+  name: {{ .Values.namespace_admin_group_name }}
+  namespace: {{ .Values.monitoring_namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -40,19 +199,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: monitoring
-  namespace: {{ .Values.monitoring_namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: workload-monitoring-prometheus-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: workload-monitoring-prometheus-operator
-subjects:
-- kind: ServiceAccount
-  name: prometheus-operator
   namespace: {{ .Values.monitoring_namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -71,4 +217,19 @@ subjects:
   name: kube-state-metrics
   namespace: {{ .Values.monitoring_namespace }}
 ---
-
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: monitoring-prometheus-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: workload-monitoring-prometheus-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-operator
+subjects:
+- kind: ServiceAccount
+  name: prometheus-operator
+  namespace: {{ .Values.monitoring_namespace }}

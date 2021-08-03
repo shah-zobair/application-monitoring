@@ -7,7 +7,6 @@ metadata:
     app.kubernetes.io/version: v1.9.7
     monitoring: "true"
   name: kube-state-metrics
-  namespace: {{ .Values.monitoring_namespace }}
 spec:
   clusterIP: None
   ports:
@@ -27,7 +26,6 @@ metadata:
     app: prometheus-example-app
     monitoring: "true"
   name: prometheus-example-app
-  namespace: {{ .Values.monitoring_namespace }}
 spec:
   ports:
   - port: 8080
@@ -40,11 +38,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: sample-monitoring-app
+  name: bell-monitoring-app
   namespace: {{ .Values.monitoring_namespace }}
   labels:
-    app: sample-monitoring-app
-    service: sample-monitoring-app
+    app: bell-monitoring-app
+    service: bell-monitoring-app
     monitoring: "true"
 spec:
   ports:
@@ -52,4 +50,4 @@ spec:
     name: web
     targetPort: 8080
   selector:
-    app: sample-monitoring-app
+    app: bell-monitoring-app
